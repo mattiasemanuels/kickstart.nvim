@@ -1,25 +1,104 @@
--- Neo-tree is a Neovim plugin to browse the file system
--- https://github.com/nvim-neo-tree/neo-tree.nvim
-
 return {
-  'nvim-neo-tree/neo-tree.nvim',
-  version = '*',
-  dependencies = {
-    'nvim-lua/plenary.nvim',
-    'nvim-tree/nvim-web-devicons', -- not strictly required, but recommended
-    'MunifTanjim/nui.nvim',
-  },
-  lazy = false,
-  keys = {
-    { '\\', ':Neotree reveal<CR>', desc = 'NeoTree reveal', silent = true },
-  },
-  opts = {
-    filesystem = {
-      window = {
-        mappings = {
-          ['\\'] = 'close_window',
-        },
-      },
+    "nvim-neo-tree/neo-tree.nvim",
+    tag = "3.6",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "MunifTanjim/nui.nvim",
     },
-  },
+    config = function()
+      local neotree = require("neo-tree")
+	  local do_setcd = function(state)
+	     local p = state.tree:get_node().path
+	     print(p) -- show in command line
+	     vim.cmd(string.format('exec(":lcd %s")',p))
+	  end
+      neotree.setup({
+        use_popups_for_input = false, -- not floats for input
+         commands = {
+            setcd = function(state)
+				do_setcd(state)
+            end,
+            find_files = function(state)
+				do_setcd(state)
+				require('telescope.builtin').find_files()
+            end,
+            grep = function(state)
+				do_setcd(state)
+				require('telescope.builtin').live_grep()
+            end,
+        },
+        -- window = {
+        --   --c(d), z(p)
+        --   mappings = {
+        --     ["o"] = "open",
+        --     ["x"] = "close_node",
+        --     ["u"] = "navigate_up",
+        --     ["I"] = "toggle_hidden",
+        --     ["C"] = "set_root",
+        --     ["r"] = "refresh",
+        --     ["c"] = "setcd",
+        --     ["p"] = "find_files",
+        --     ["g"] = "grep",
+        --     ["<c-a>"] = {
+        --       "add",
+        --       config = {
+        --         show_path = 'relative'
+        --       }
+        --     },
+        --     ["<c-d>"] = "delete",
+        --     ["<c-m>"] = {
+        --       "move",
+        --       config = {
+        --         show_path = 'relative'
+        --       }
+        --     },
+        --     ["<c-c>"] = {
+        --       "copy",
+        --       config = {
+        --         show_path = 'relative'
+        --       }
+        --     },
+        --     ["d"] = function() end,
+        --     ["m"] = function() end,
+        --     ["a"] = function() end,
+        --     ["z"] = function() end,
+        --   },
+        -- },
+        filesystem = {
+          window = {
+            position = "float",
+            mappings = {
+              ['\\'] = 'close_window',
+            },
+          },
+          filtered_items = {
+            show_hidden_count = false,
+          },
+          components = {
+            -- hide file icon
+            icon = function(config, node, state)
+              if node.type == 'file' then
+                  return {
+                    text = "",
+                    highlight = config.highlight,
+                  }
+              end
+              return require('neo-tree.sources.common.components').icon(config, node, state)
+            end,
+          } -- components
+        }, -- filesystem
+        event_handlers = {{
+          event = "neo_tree_buffer_enter",
+          handler = function(arg)
+            vim.cmd [[
+              setlocal relativenumber
+            ]]
+          end,
+        }},
+      })
+      -- set keymaps
+      local keymap = vim.keymap -- for conciseness
+      keymap.set("n", "<leader>e", "<cmd>Neotree toggle<cr>", { desc = "Toggle Neo-tree" })
+
+  end,
 }
